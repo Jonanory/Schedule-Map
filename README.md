@@ -20,7 +20,7 @@ Now, moving across an edge takes the indicated amount of turns. Another way to s
 
 Now, let's make it harder again:
 
-![Game 3](Images/Game2.png)
+![Game 3](Images/Game3.png)
 
 Now, some piles have yellow pentagonal tokens. In order to get the green tokens from those piles, you have to:
 - Be at the node when the last red token is gone
