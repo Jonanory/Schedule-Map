@@ -9,6 +9,7 @@ The best way to explain this project is with a game. Look at the following graph
 You play as the blue character. During a turn, you can
 - Stay on your current node, or
 - Move to a connected node
+
 After each turn, every pile on the board loses a red square token. If you are on a node at the point when it loses its last red token, you gain all the green circle tokens in that pile. If you arrive too early, you'll have to wait until all the red tokens are gone. If you are too late, you get nothing. The goal of the game is to get as many green tokens as possible.
 
 Now, let's make the game harder:
