@@ -14,25 +14,21 @@ namespace ScheduleMap
         public Map() { }
 
         public Map(
-            List<T> values,
-            Dictionary<T, List<T>> connections,
-            List<ScheduleItem<T>> scheduleItems
-            )
+           List<T> values,
+           Dictionary<T, List<T>> connections
+           )
         {
             AddLocations(values);
             MakePaths(connections);
-            AddScheduleItems(scheduleItems);
         }
 
         public Map(
             List<T> values,
-            Dictionary<T, Dictionary<T,int>> connections,
-            List<ScheduleItem<T>> scheduleItems
+            Dictionary<T, Dictionary<T, int>> connections
             )
         {
             AddLocations(values);
             MakePaths(connections);
-            AddScheduleItems(scheduleItems);
         }
 
         public void AddLocations(List<T> values)
@@ -51,7 +47,7 @@ namespace ScheduleMap
             }
         }
 
-        public void AddScheduleItem( ScheduleItem<T> scheduleItem )
+        public void AddScheduleItem(ScheduleItem<T> scheduleItem)
         {
             nodeDictionary[scheduleItem.value].AddScheduleItem(scheduleItem.points, scheduleItem.startTime, scheduleItem.length);
         }
@@ -60,14 +56,14 @@ namespace ScheduleMap
         {
             foreach (T startKey in connections.Keys)
             {
-                foreach( T endKey in connections[startKey])
+                foreach (T endKey in connections[startKey])
                 {
                     MakePath(startKey, endKey, 1);
                 }
             }
         }
 
-        public void MakePaths(Dictionary<T, Dictionary<T,int>> connections)
+        public void MakePaths(Dictionary<T, Dictionary<T, int>> connections)
         {
             foreach (T startKey in connections.Keys)
             {
@@ -83,20 +79,20 @@ namespace ScheduleMap
             if (nodeDictionary.ContainsKey(start) == false || nodeDictionary.ContainsKey(end) == false) return;
             Node<T> startNode = nodeDictionary[start];
             Node<T> endNode = nodeDictionary[end];
-            paths.Add(startNode.AddPath(endNode, distance) );
+            paths.Add(startNode.AddPath(endNode, distance));
         }
 
-        public void ResetNodes()
+        public void Reset()
         {
             foreach (Node<T> node in nodeDictionary.Values)
             {
                 node.Reset();
             }
+            maxBot = null;
         }
 
-        public void CreateStartNode(T startLocation, int startTime )
+        public void CreateStartNode(T startLocation, int startTime, List<ScheduleItem<T>> startingScheduleList)
         {
-            ResetNodes();
             Node<T> startNode = nodeDictionary[startLocation];
 
             Bot<T> startingBot = new Bot<T>(startLocation)
@@ -105,24 +101,26 @@ namespace ScheduleMap
                 score = 0
             };
             startNode.freeBot = startingBot;
+            startNode.freeBot.AddInstruction(startLocation, startTime, true, 0);
 
-            // If there are any occurrences at the start that take some time to complete,
-            // make a copy of the starting bot and trap it
-            foreach (Time time in startNode.GetScheduleData(startTime))
+            foreach (ScheduleItem<T> item in startingScheduleList)
             {
-                if (time.length > 0)
+                if (EqualityComparer<T>.Default.Equals(item.value, startLocation))
                 {
-                    startNode.TrapCopyOfBot(startingBot, time.length, time.points);
+                    if (item.length > 0)
+                    {
+                        startNode.TrapCopyOfBot(startingBot, item.length, item.points);
+                    }
                 }
             }
         }
 
-        public Queue<T> GetRoute(T startLocation, int startTime = 0, int pathLength = 8)
+        public Bot<T> GetBot(ScheduleList<T> list, T startLocation, int startTime = 0, int pathLength = 8)
         {
-            ResetNodes();
+            Reset();
             Node<T> startNode = nodeDictionary[startLocation];
 
-            CreateStartNode( startLocation, startTime);
+            CreateStartNode(startLocation, startTime, list.GetSchedules(startTime));
 
             for (int i = 1; i <= pathLength; i++)
             {
@@ -143,19 +141,19 @@ namespace ScheduleMap
 
                 foreach (Bot<T> bot in oldBots)
                 {
-                    foreach( Path<T> path in bot.currentNode.paths)
+                    foreach (Path<T> path in bot.currentNode.paths)
                     {
-                        bot.TravelAlong(path);
+                        bot.TravelAlong(path, startTime + i);
                     }
                 }
 
                 foreach (Node<T> node in nodeDictionary.Values)
                 {
-                    node.CheckOnTrappedBots();   
+                    node.CheckOnTrappedBots();
 
                     if (node.freeBot != null)
                     {
-                        node.ApplyScore(startTime+i);
+                        node.ApplyScore(list.GetSchedules(startTime + i), startTime + i);
 
                         if (maxBot == null || node.freeBot.score > maxBot.score)
                         {
@@ -165,7 +163,21 @@ namespace ScheduleMap
                 }
             }
 
-            return maxBot.path;
+            maxBot.CreateInstructionQueue();
+            maxBot.CreatePath();
+            return maxBot;
+        }
+
+        public Queue<Instruction<T>> GetInstructions(ScheduleList<T> list, T startLocation, int startTime = 0, int pathLength = 8)
+        {
+            Bot<T> bot = GetBot(list, startLocation, startTime, pathLength);
+            return bot.Instructions;
+        }
+
+        public Queue<T> GetPath(ScheduleList<T> list, T startLocation, int startTime = 0, int pathLength = 8)
+        {
+            Bot<T> bot = GetBot(list, startLocation, startTime, pathLength);
+            return bot.Path;
         }
     }
 }

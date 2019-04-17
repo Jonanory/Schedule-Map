@@ -19,7 +19,7 @@ namespace ScheduleMap
             value = _value;
         }
 
-        public Path<T> AddPath( Node<T> otherNode, int distance = 1 )
+        public Path<T> AddPath(Node<T> otherNode, int distance = 1)
         {
             Path<T> newPath = new Path<T>(otherNode, distance);
             paths.Add(newPath);
@@ -50,13 +50,14 @@ namespace ScheduleMap
             return new List<Time>();
         }
 
-        public void TrapCopyOfBot(Bot<T> botToTrap, int timeToTrapFor, float reward = 0f )
+        public Bot<T> TrapCopyOfBot(Bot<T> botToTrap, int timeToTrapFor, float reward = 0f)
         {
-            if (timeToTrapFor < 1) return;
+            if (timeToTrapFor < 1) return null;
             Bot<T> newBot = botToTrap.Duplicate();
             newBot.timeTrappedFor = timeToTrapFor;
             newBot.score += reward;
             trappedBot.Add(newBot);
+            return newBot;
         }
 
         public void CheckOnTrappedBots()
@@ -82,37 +83,35 @@ namespace ScheduleMap
                         freeBot = bot;
                     }
                 }
-                else
-                {
-                    bot.path.Enqueue(value);
-                }
             }
         }
 
-        public void ApplyScore( int currentTime )
+        public void ApplyScore(List<ScheduleItem<T>> items, int time)
         {
-            freeBot.path.Enqueue(value);
-
             float maxFreeScore = 0;
-            foreach (Time time in GetScheduleData(currentTime))
+            foreach (ScheduleItem<T> item in items)
             {
-                if (time.length > 0)
+                if (EqualityComparer<T>.Default.Equals(item.value, value) == false) continue;
+                if (item.length > 0)
                 {
-                    TrapCopyOfBot(freeBot, time.length, time.points);
+                    Bot<T> newBot = TrapCopyOfBot(freeBot, item.length, item.points);
+                    if (newBot != null) newBot.AddInstruction(value, time, true);
                 }
                 else
                 {
-                    if (time.points > maxFreeScore)
+                    if (item.points > maxFreeScore)
                     {
-                        maxFreeScore = time.points;
+                        maxFreeScore = item.points;
                     }
                 }
             }
 
-            // Clear up memory
-            schedules.Remove(currentTime);
-
             freeBot.score += maxFreeScore;
+
+            if (maxFreeScore > 0)
+            {
+                freeBot.AddInstruction(value, time, true);
+            }
         }
     }
 }
