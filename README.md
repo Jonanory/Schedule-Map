@@ -36,30 +36,38 @@ Then, if the node has any piles that have just arrived at the yellow token stage
 
 ## How to use
 
-Consider the following code as a quick example of use
+Consider the following code as a quick example of use (will return a Queue of strings)
 ```
-new Map<string>(
-    new List<string> { "A", "B", "C"},
+new Map<String>(
+    new List<string> { "A", "B", "C", "D", "E", "F", "G" },
     new Dictionary<string, Dictionary<string, int>> {
-        {"A", new Dictionary<string, int>{ { "B", 1 }}},
-        {"B", new Dictionary<string, int>{ { "A", 1 }, { "C", 2 }}},
-        {"C", new Dictionary<string, int>{ { "B", 2 }}},
-    }).GetRoute(
-        new List<ScheduleItem<string>> {
-            new ScheduleItem<string>( "A", 5, 8 ),
-            new ScheduleItem<string>( "B", 6, 1, 1 ),
-            new ScheduleItem<string>( "C", 6, 4, 1 ),
+        {"A", new Dictionary<string, int>{ { "B", 3 }, { "D", 1 }, { "E", 1 }}},
+        {"B", new Dictionary<string, int>{ { "A", 3 }, { "C", 3 }, { "D", 2 }}},
+        {"C", new Dictionary<string, int>{ { "B", 3 }}},
+        {"D", new Dictionary<string, int>{ { "A", 1 }, { "B", 2 }, { "E", 1 }}},
+        {"E", new Dictionary<string, int>{ { "A", 1 }, { "D", 1 }, { "F", 2 }, { "G", 1 }}},
+        {"F", new Dictionary<string, int>{ { "E", 2 }, { "G", 2 }}},
+        {"G", new Dictionary<string, int>{ { "E", 1 }, { "F", 2 }}}
+    }
+).GetBot(
+    new List<ScheduleMap.ScheduleItem<string>> {
+        new ScheduleMap.ScheduleItem<string>( "C", 5, 3 ),
+        new ScheduleMap.ScheduleItem<string>( "D", 6, 1, 1 ),
+        new ScheduleMap.ScheduleItem<string>( "D", 7, 6 ),
+        new ScheduleMap.ScheduleItem<string>( "E", 2, 6, 2 ),
+        new ScheduleMap.ScheduleItem<string>( "F", 7, 8 ),
+        new ScheduleMap.ScheduleItem<string>( "G", 3, 3 )
     }, "A", 0, 8
-);
+).Path;
 ```
 
 To instantiate a Schedule Map with each node represented by a class T (in the above case, a string), two things are needed:
 - A List of all the T instances that should be represented as a node
-- A Dicationary with T instances as keys, and for values, either
+- A Dictionary with T instances as keys, and for values, either
     - A List of T instances the T instance is attached to.
-    - A Dictinary with the attached T instance as the key and the number of turns it takes to get from one to the other as the value
+    - A Dictionary with the attached T instance as the key and the number of turns it takes to get from one to the other as the value
 
-To get a list of directions (in the form of a Queue of T instances), you use the GetRoute function, with the following inputs:
+To get a list of directions (in the form of a Queue of T instances), you first want to use the GetBot function, with the following inputs:
 - A List of ScheduleItems(the token piles), which are instantiated with
     - The T instance that holds the token pile
     - The number of green tokens
@@ -68,3 +76,10 @@ To get a list of directions (in the form of a Queue of T instances), you use the
 - The T instance that will be the starting node
 - How many red tokens should be taken off at the beginning
 - How many turns should be planned out
+
+This will return a bot that got the most green tokens in the game. From this bot, you can get either:
+- Path: A Queue of the T nodes that the bot passed on it's way to get the green token, with repititions of a node if the bot stayed there for a number of turns. Any turns that was spent on the path between nodes is not included in the Queue.
+- Instructions: A Queue of instructions to replicate the bot's path, including an instruction at the start to indicate the starting point. Each instruction includes the following attributes:
+    - value: Which T node to go to
+    - time: Which turn to start heading on the path to go to the node
+    - score: How many green nodes the bot has at that point in time
