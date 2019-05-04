@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ScheduleMap
 {
@@ -22,7 +23,7 @@ namespace ScheduleMap
             instructionList = new List<Instruction<T>>();
         }
 
-        public Queue<T> DuplicatePath()
+        Queue<T> DuplicatePath()
         {
             Queue<T> returnPath = new Queue<T>();
             foreach (T t in Path)
@@ -32,7 +33,7 @@ namespace ScheduleMap
             return returnPath;
         }
 
-        public List<Instruction<T>> DuplicateList()
+        List<Instruction<T>> DuplicateList()
         {
             List<Instruction<T>> final = new List<Instruction<T>>();
 
@@ -81,40 +82,40 @@ namespace ScheduleMap
             }
         }
 
-        public void TravelAlong(Path<T> path, int time)
+        public void TravelAlong(Edge<T> _edge, int _time)
         {
             Bot<T> newBot = Duplicate();
             if (instructionList.Count == 0 ||
                     EqualityComparer<T>.Default.Equals(instructionList[instructionList.Count - 1].value, currentNode.value))
             {
-                newBot.AddInstruction(path.destination.value, time, false, path.length);
+                newBot.AddInstruction(_edge.destination.value, _time, false, _edge.length);
             }
 
-            if (path.length > 1)
+            if (_edge.length > 1)
             {
-                newBot.timeTrappedFor = path.length - 1;
-                path.botsTravellingDown.Add(newBot);
+                newBot.timeTrappedFor = _edge.length - 1;
+                _edge.botsTravellingDown.Add(newBot);
             }
-            else if (path.length == 1)
+            else if (_edge.length == 1)
             {
-                newBot.ArriveAt(path.destination);
+                newBot.ArriveAt(_edge.destination);
             }
         }
 
-        public Bot<T> ArriveAt(Node<T> node)
+        public Bot<T> ArriveAt(Node<T> _node)
         {
             Bot<T> newBot = Duplicate();
-            newBot.currentNode = node;
+            newBot.currentNode = _node;
 
-            if (node.freeBot == null)
+            if (_node.freeBot == null)
             {
-                node.freeBot = newBot;
+                _node.freeBot = newBot;
             }
             else
             {
-                if (newBot.score > node.freeBot.score)
+                if (newBot.score > _node.freeBot.score)
                 {
-                    node.freeBot = newBot;
+                    _node.freeBot = newBot;
                 }
             }
             return newBot;

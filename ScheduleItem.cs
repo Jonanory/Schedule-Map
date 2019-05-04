@@ -5,41 +5,106 @@ namespace ScheduleMap
 {
     public class ScheduleList<T>
     {
-        public Dictionary<int, List<ScheduleItem<T>>> schedule = new Dictionary<int, List<ScheduleItem<T>>>();
+        Dictionary<int, List<ScheduleItem<T>>> schedule = new Dictionary<int, List<ScheduleItem<T>>>();
+
+        public float totalPointsAvailable = 0f;
+        Dictionary<int, float> MaxPossiblePointsRemaining = new Dictionary<int, float>();
 
         public ScheduleList() { }
         public ScheduleList(Dictionary<int, List<ScheduleItem<T>>> _schedule)
         {
             schedule = _schedule;
+            CalculateMaxPoints();
         }
         public ScheduleList(List<ScheduleItem<T>> _schedule)
         {
             schedule = new Dictionary<int, List<ScheduleItem<T>>>();
             foreach (ScheduleItem<T> item in _schedule)
             {
-                AddScheduleItem(item.startTime, item);
+                Add(item);
+            }
+            CalculateMaxPoints();
+        }
+
+        void CalculateMaxPoints()
+        {
+            totalPointsAvailable = 0f;
+            MaxPossiblePointsRemaining = new Dictionary<int, float>();
+
+            foreach( int time in schedule.Keys )
+            {
+                float currentMax = 0f;
+                foreach( ScheduleItem<T> item in schedule[time] )
+                {
+                    if( item.points > currentMax )
+                    {
+                        currentMax = item.points;
+                    }
+                }
+                if (currentMax > 0f)
+                {
+                    MaxPossiblePointsRemaining.Add(time, currentMax);
+                    totalPointsAvailable += currentMax;
+                }
             }
         }
 
-        public void AddScheduleItem(int time, ScheduleItem<T> scheduleItem)
+        public void Add(ScheduleItem<T> _scheduleItem)
         {
-            if (schedule.ContainsKey(time) == false)
+            if (schedule.ContainsKey(_scheduleItem.startTime) == false)
             {
-                schedule.Add(time, new List<ScheduleItem<T>>());
+                schedule.Add(_scheduleItem.startTime, new List<ScheduleItem<T>>());
             }
-            schedule[time].Add(scheduleItem);
+            schedule[_scheduleItem.startTime].Add(_scheduleItem);
+
+            if( MaxPossiblePointsRemaining.ContainsKey(_scheduleItem.startTime) == false )
+            {
+                MaxPossiblePointsRemaining.Add(_scheduleItem.startTime, _scheduleItem.points);
+                totalPointsAvailable += _scheduleItem.points;
+            }
+            else if ( MaxPossiblePointsRemaining[_scheduleItem.startTime] < _scheduleItem.points )
+            {
+                totalPointsAvailable += _scheduleItem.points - MaxPossiblePointsRemaining[_scheduleItem.startTime];
+                MaxPossiblePointsRemaining[_scheduleItem.startTime] = _scheduleItem.points;
+            }
         }
 
-        public List<ScheduleItem<T>> GetSchedules(int time)
+        public List<ScheduleItem<T>> GetSchedules(int _time)
         {
-            if (schedule.ContainsKey(time))
+            if (schedule.ContainsKey(_time))
             {
-                return schedule[time];
+                return schedule[_time];
             }
             else
             {
                 return new List<ScheduleItem<T>>();
             }
+        }
+
+        public void RemoveTime( int _time )
+        {
+            if( schedule.ContainsKey( _time ))
+            {
+                schedule.Remove(_time);
+            }
+            if( MaxPossiblePointsRemaining.ContainsKey( _time ))
+            {
+                totalPointsAvailable -= MaxPossiblePointsRemaining[_time];
+                MaxPossiblePointsRemaining.Remove(_time);
+            }
+        }
+
+        public void Remove( ScheduleItem<T> _scheduleItem )
+        {
+            if( Contains(_scheduleItem) )
+            {
+                schedule[_scheduleItem.startTime].Remove(_scheduleItem);
+            }
+        }
+
+        public bool Contains( ScheduleItem<T> _scheduleItem )
+        {
+            return schedule.ContainsKey(_scheduleItem.startTime) && schedule[_scheduleItem.startTime].Contains(_scheduleItem);
         }
     }
 

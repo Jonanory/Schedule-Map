@@ -7,82 +7,72 @@ namespace ScheduleMap
     {
         Dictionary<T, Node<T>> nodeDictionary = new Dictionary<T, Node<T>>();
 
-        public List<Path<T>> paths = new List<Path<T>>();
+        List<Edge<T>> edges = new List<Edge<T>>();
 
-        public Bot<T> maxBot = null;
+        Bot<T> maxBot = null;
+
+        public float totalPointsAvailable;
+        Dictionary<int, float> MaxPossiblePointsRemaining;
 
         public Map() { }
 
         public Map(
-           List<T> values,
-           Dictionary<T, List<T>> connections
+           List<T> _values,
+           Dictionary<T, List<T>> _connections
            )
         {
-            AddLocations(values);
-            MakePaths(connections);
+            AddLocations(_values);
+            MakeEdges(_connections);
         }
 
         public Map(
-            List<T> values,
-            Dictionary<T, Dictionary<T, int>> connections
+            List<T> _values,
+            Dictionary<T, Dictionary<T, int>> _connections
             )
         {
-            AddLocations(values);
-            MakePaths(connections);
+            AddLocations(_values);
+            MakeEdges(_connections);
         }
 
-        public void AddLocations(List<T> values)
+        void AddLocations(List<T> _values)
         {
-            foreach (T value in values)
+            foreach (T value in _values)
             {
                 nodeDictionary.Add(value, new Node<T>(value));
             }
         }
 
-        public void AddScheduleItems(List<ScheduleItem<T>> scheduleItems)
+        void MakeEdges(Dictionary<T, List<T>> _connections)
         {
-            foreach (ScheduleItem<T> item in scheduleItems)
+            foreach (T startKey in _connections.Keys)
             {
-                AddScheduleItem(item);
-            }
-        }
-
-        public void AddScheduleItem(ScheduleItem<T> scheduleItem)
-        {
-            nodeDictionary[scheduleItem.value].AddScheduleItem(scheduleItem.points, scheduleItem.startTime, scheduleItem.length);
-        }
-
-        public void MakePaths(Dictionary<T, List<T>> connections)
-        {
-            foreach (T startKey in connections.Keys)
-            {
-                foreach (T endKey in connections[startKey])
+                foreach (T endKey in _connections[startKey])
                 {
-                    MakePath(startKey, endKey, 1);
+                    MakeEdge(startKey, endKey, 1);
                 }
             }
         }
 
-        public void MakePaths(Dictionary<T, Dictionary<T, int>> connections)
+        void MakeEdges(Dictionary<T, Dictionary<T, int>> _connections)
         {
-            foreach (T startKey in connections.Keys)
+            foreach (T startKey in _connections.Keys)
             {
-                foreach (T endKey in connections[startKey].Keys)
+                foreach (T endKey in _connections[startKey].Keys)
                 {
-                    MakePath(startKey, endKey, connections[startKey][endKey]);
+                    MakeEdge(startKey, endKey, _connections[startKey][endKey]);
                 }
             }
         }
 
-        void MakePath(T start, T end, int distance = 1)
+        void MakeEdge(T _start, T _end, int _distance = 1)
         {
-            if (nodeDictionary.ContainsKey(start) == false || nodeDictionary.ContainsKey(end) == false) return;
-            Node<T> startNode = nodeDictionary[start];
-            Node<T> endNode = nodeDictionary[end];
-            paths.Add(startNode.AddPath(endNode, distance));
+            if (nodeDictionary.ContainsKey(_start) == false || nodeDictionary.ContainsKey(_end) == false) return;
+            Node<T> startNode = nodeDictionary[_start];
+            Node<T> endNode = nodeDictionary[_end];
+            edges.Add(startNode.AddEdge(endNode, _distance));
         }
 
-        public void Reset()
+        void Reset()
         {
             foreach (Node<T> node in nodeDictionary.Values)
             {
@@ -91,21 +81,21 @@ namespace ScheduleMap
             maxBot = null;
         }
 
-        public void CreateStartNode(T startLocation, int startTime, List<ScheduleItem<T>> startingScheduleList)
+        void CreateStartNode(T _startLocation, int _startTime, List<ScheduleItem<T>> _startingScheduleList)
         {
-            Node<T> startNode = nodeDictionary[startLocation];
+            Node<T> startNode = nodeDictionary[_startLocation];
 
-            Bot<T> startingBot = new Bot<T>(startLocation)
+            Bot<T> startingBot = new Bot<T>(_startLocation)
             {
                 currentNode = startNode,
                 score = 0
             };
             startNode.freeBot = startingBot;
-            startNode.freeBot.AddInstruction(startLocation, startTime, true, 0);
+            startNode.freeBot.AddInstruction(_startLocation, _startTime, true, 0);
 
-            foreach (ScheduleItem<T> item in startingScheduleList)
+            foreach (ScheduleItem<T> item in _startingScheduleList)
             {
-                if (EqualityComparer<T>.Default.Equals(item.value, startLocation))
+                if (EqualityComparer<T>.Default.Equals(item.value, _startLocation))
                 {
                     if (item.length > 0)
                     {
@@ -115,14 +105,14 @@ namespace ScheduleMap
             }
         }
 
-        public Bot<T> GetBot(ScheduleList<T> list, T startLocation, int startTime = 0, int pathLength = 8)
+        public Bot<T> GetBot(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
             Reset();
-            Node<T> startNode = nodeDictionary[startLocation];
+            Node<T> startNode = nodeDictionary[_startLocation];
 
-            CreateStartNode(startLocation, startTime, list.GetSchedules(startTime));
+            CreateStartNode(_startLocation, _startTime, _list.GetSchedules(_startTime));
 
-            for (int i = 1; i <= pathLength; i++)
+            for (int i = 1; i <= _pathLength; i++)
             {
                 // Determine all the bots that are able to move
                 List<Bot<T>> oldBots = new List<Bot<T>>();
@@ -130,30 +120,37 @@ namespace ScheduleMap
                 {
                     if (node.freeBot != null)
                     {
-                        oldBots.Add(node.freeBot);
+                        if( maxBot != null && node.freeBot.score + _list.totalPointsAvailable < maxBot.score )
+                        {
+                            node.freeBot = null;
+                        }
+                        else
+                        {
+                            oldBots.Add(node.freeBot);
+                        }
                     }
                 }
 
-                foreach (Path<T> path in paths)
+                foreach (Edge<T> edge in edges)
                 {
-                    path.CheckOnTrappedBots();
+                    edge.CheckOnTrappedBots( _list.totalPointsAvailable, maxBot != null ? maxBot.score : 0f ); 
                 }
 
                 foreach (Bot<T> bot in oldBots)
                 {
-                    foreach (Path<T> path in bot.currentNode.paths)
+                    foreach (Edge<T> edge in bot.currentNode.edges)
                     {
-                        bot.TravelAlong(path, startTime + i);
+                        bot.TravelAlong(edge, _startTime + i);
                     }
                 }
 
                 foreach (Node<T> node in nodeDictionary.Values)
                 {
-                    node.CheckOnTrappedBots();
+                    node.CheckOnTrappedBots( _list.totalPointsAvailable, maxBot != null ? maxBot.score : 0f );
 
                     if (node.freeBot != null)
                     {
-                        node.ApplyScore(list.GetSchedules(startTime + i), startTime + i);
+                        node.ApplyScore(_list.GetSchedules(_startTime + i), _startTime + i);
 
                         if (maxBot == null || node.freeBot.score > maxBot.score)
                         {
@@ -168,15 +165,15 @@ namespace ScheduleMap
             return maxBot;
         }
 
-        public Queue<Instruction<T>> GetInstructions(ScheduleList<T> list, T startLocation, int startTime = 0, int pathLength = 8)
+        public Queue<Instruction<T>> GetInstructions(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
-            Bot<T> bot = GetBot(list, startLocation, startTime, pathLength);
+            Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
             return bot.Instructions;
         }
 
-        public Queue<T> GetPath(ScheduleList<T> list, T startLocation, int startTime = 0, int pathLength = 8)
+        public Queue<T> GetPath(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
-            Bot<T> bot = GetBot(list, startLocation, startTime, pathLength);
+            Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
             return bot.Path;
         }
     }
