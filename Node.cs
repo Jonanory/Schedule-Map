@@ -6,47 +6,47 @@ namespace ScheduleMap
 {
     public class Node<T>
     {
-        public T value;
+        public T Value;
 
-        public Bot<T> freeBot = null;
-        List<Bot<T>> trappedBots;
+        public Bot<T> FreeBot = null;
+        List<Bot<T>> TrappedBots;
 
-        public List<Edge<T>> edges = new List<Edge<T>>();
-        Dictionary<int, List<Time>> schedules = new Dictionary<int, List<Time>>();
+        public List<Edge<T>> Edges = new List<Edge<T>>();
+        Dictionary<int, List<Time>> Schedules = new Dictionary<int, List<Time>>();
 
 
         public Node(T _value)
         {
-            value = _value;
+            Value = _value;
         }
 
         public Edge<T> AddEdge(Node<T> _otherNode, int _distance = 1)
         {
             Edge<T> newEdge = new Edge<T>(_otherNode, _distance);
-            edges.Add(newEdge);
+            Edges.Add(newEdge);
             return newEdge;
         }
 
         public void Reset()
         {
-            freeBot = null;
-            trappedBots = new List<Bot<T>>();
+            FreeBot = null;
+            TrappedBots = new List<Bot<T>>();
         }
 
         public void AddScheduleItem(float _preference, int _startTime, int _length = 0)
         {
-            if (schedules.ContainsKey(_startTime) == false)
+            if (Schedules.ContainsKey(_startTime) == false)
             {
-                schedules.Add(_startTime, new List<Time>());
+                Schedules.Add(_startTime, new List<Time>());
             }
-            schedules[_startTime].Add(new Time(_preference, _startTime, _length));
+            Schedules[_startTime].Add(new Time(_preference, _startTime, _length));
         }
 
         List<Time> GetScheduleData(int _time)
         {
-            if (schedules.ContainsKey(_time))
+            if (Schedules.ContainsKey(_time))
             {
-                return schedules[_time];
+                return Schedules[_time];
             }
             return new List<Time>();
         }
@@ -55,70 +55,78 @@ namespace ScheduleMap
         {
             if (_timeToTrapFor < 1) return null;
             Bot<T> newBot = _botToTrap.Duplicate();
-            newBot.timeTrappedFor = _timeToTrapFor;
-            newBot.score += _reward;
-            trappedBots.Add(newBot);
+            newBot.TimeTrappedFor = _timeToTrapFor;
+            newBot.Score += _reward;
+            TrappedBots.Add(newBot);
             return newBot;
         }
 
         public void CheckOnTrappedBots(float scoreRemaining, float scoreToBeat)
         {
             List<Bot<T>> currentlyTrapped = new List<Bot<T>>();
-            foreach (Bot<T> trapped in trappedBots)
+            foreach (Bot<T> trapped in TrappedBots)
             {
                 currentlyTrapped.Add(trapped);
             }
             foreach (Bot<T> bot in currentlyTrapped)
             {
-                if( bot.score + scoreRemaining < scoreToBeat )
+                if (bot.Score + scoreRemaining < scoreToBeat)
                 {
-                    trappedBots.Remove(bot);
+                    TrappedBots.Remove(bot);
                 }
                 else
                 {
-                    bot.timeTrappedFor--;
-                    if (bot.timeTrappedFor <= 0)
+                    bot.TimeTrappedFor--;
+                    if (bot.TimeTrappedFor <= 0)
                     {
-                        trappedBots.Remove(bot);
+                        TrappedBots.Remove(bot);
 
-                        if (freeBot == null)
+                        if (FreeBot == null)
                         {
-                            freeBot = bot;
+                            FreeBot = bot;
                         }
-                        else if (bot.score > freeBot.score)
+                        else if (bot.Score > FreeBot.Score)
                         {
-                            freeBot = bot;
+                            FreeBot = bot;
                         }
                     }
                 }
             }
         }
 
-        public void ApplyScore(List<ScheduleItem<T>> _items, int _time)
+        public void ApplyScore(List<ScheduleItem<T>> _items, int _time, float _discount = 1f)
         {
+            bool discounting = _discount == 1f;
             float maxFreeScore = 0;
             foreach (ScheduleItem<T> item in _items)
             {
-                if (EqualityComparer<T>.Default.Equals(item.value, value) == false) continue;
-                if (item.length > 0)
+                if (EqualityComparer<T>.Default.Equals(item.Value, Value) == false) continue;
+                if (item.Length > 0)
                 {
-                    Bot<T> newBot = TrapCopyOfBot(freeBot, item.length, item.points);
-                    if (newBot != null) newBot.AddInstruction(value, _time, true);
+                    Bot<T> newBot = TrapCopyOfBot(FreeBot, item.Length, item.Points);
+                    if (newBot != null) newBot.ApplyScore(Value, _time, item.Length);
                 }
                 else
                 {
-                    if (item.points > maxFreeScore)
+                    if (item.Points > maxFreeScore)
                     {
-                        maxFreeScore = item.points;
+                        maxFreeScore = item.Points;
                     }
                 }
             }
 
-            freeBot.score += maxFreeScore;
+            if (discounting)
+            {
+                FreeBot.Score += maxFreeScore * _discount;
+            }
+            else
+            {
+                FreeBot.Score += maxFreeScore;
+            }
 
             if (maxFreeScore > 0)
             {
-                freeBot.AddInstruction(value, _time, true);
+                FreeBot.ApplyScore(Value, _time, 0);
             }
         }
     }

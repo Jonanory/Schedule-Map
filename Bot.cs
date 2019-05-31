@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,13 +7,14 @@ namespace ScheduleMap
 {
     public class Bot<T>
     {
-        public float score = -1;
-        public int timeTrappedFor = 0;
-        public Node<T> currentNode;
+        public float Score = -1;
+        public int TimeTrappedFor = 0;
+        public Node<T> CurrentNode;
 
-        public Queue<T> Path { get; set; }
-        public Queue<Instruction<T>> Instructions { get; set; }
-        List<Instruction<T>> instructionList;
+        public Queue<T> Path { get; private set; }
+        public Queue<Instruction<T>> Instructions { get; private set; }
+        public Queue<Duration<T>> Durations { get; private set; }
+        List<Duration<T>> DurationList;
 
 
         public Bot() { }
@@ -20,26 +22,18 @@ namespace ScheduleMap
         {
             Path = new Queue<T>();
             Instructions = new Queue<Instruction<T>>();
-            instructionList = new List<Instruction<T>>();
+            Durations = new Queue<Duration<T>>();
+            
+            DurationList = new List<Duration<T>>();
         }
 
-        Queue<T> DuplicatePath()
+        List<Duration<T>> DuplicationDurationList()
         {
-            Queue<T> returnPath = new Queue<T>();
-            foreach (T t in Path)
-            {
-                returnPath.Enqueue(t);
-            }
-            return returnPath;
-        }
+            List<Duration<T>> final = new List<Duration<T>>();
 
-        List<Instruction<T>> DuplicateList()
-        {
-            List<Instruction<T>> final = new List<Instruction<T>>();
-
-            foreach (Instruction<T> t in instructionList)
+            foreach (Duration<T> duration in DurationList)
             {
-                final.Add(new Instruction<T>(t.value, t.time, t.score, t.distance));
+                final.Add(duration.Duplicate());
             }
             return final;
         }
@@ -48,127 +42,205 @@ namespace ScheduleMap
         {
             return new Bot<T>
             {
-                score = score,
-                Path = DuplicatePath(),
-                instructionList = DuplicateList(),
-                currentNode = currentNode
+                Score = Score,
+                DurationList = DuplicationDurationList(),
+                CurrentNode = CurrentNode
             };
         }
 
-        public void CreatePath()
+        public void MakePath()
         {
-            if (instructionList.Count > 0)
+            if (DurationList.Count > 0)
             {
                 Path = new Queue<T>();
                 int count = 0;
-                for (int i = 0; i < instructionList.Count - 1; i++)
+                for (int i = 0; i < DurationList.Count - 1; i++)
                 {
-                    while (count < instructionList[i + 1].time)
+                    while (count < DurationList[i].CanStayUntil)
                     {
-                        Path.Enqueue(instructionList[i].value);
+                        Path.Enqueue(DurationList[i].Value);
                         count++;
                     }
                 }
-                Path.Enqueue(instructionList[instructionList.Count - 1].value);
+                Path.Enqueue(DurationList[DurationList.Count - 1].Value);
             }
         }
 
-        public void CreateInstructionQueue()
+        public void MakeDurations()
         {
-            Instructions = new Queue<Instruction<T>>();
-            foreach( Instruction<T> instruction in instructionList )
+            Durations = new Queue<Duration<T>>();
+            foreach (Duration<T> duration in DurationList)
             {
-                Instructions.Enqueue(instruction);
+                Durations.Enqueue(duration);
+            }
+        }
+
+        public void MakeInstructions()
+        {
+            Queue<Instruction<T>> result = new Queue<Instruction<T>>();
+
+            foreach (Duration<T> duration in DurationList)
+            {
+                result.Enqueue(
+                    new Instruction<T>(
+                        duration.Value,
+                        duration.MustArriveBy
+                    )
+                );
             }
         }
 
         public void TravelAlong(Edge<T> _edge, int _time)
         {
             Bot<T> newBot = Duplicate();
-            if (instructionList.Count == 0 ||
-                    EqualityComparer<T>.Default.Equals(instructionList[instructionList.Count - 1].value, currentNode.value))
+            if (DurationList.Count == 0 ||
+                    EqualityComparer<T>.Default.Equals(DurationList[DurationList.Count - 1].Value, CurrentNode.Value))
             {
-                newBot.AddInstruction(_edge.destination.value, _time, false, _edge.length);
+                newBot.AddDuration(_edge.Destination.Value, _time, _edge.Length);
             }
 
-            if (_edge.length > 1)
+            if (_edge.Length > 1)
             {
-                newBot.timeTrappedFor = _edge.length - 1;
-                _edge.botsTravellingDown.Add(newBot);
+                newBot.TimeTrappedFor = _edge.Length - 1;
+                _edge.BotsTravellingDown.Add(newBot);
             }
-            else if (_edge.length == 1)
+            else if (_edge.Length == 1)
             {
-                newBot.ArriveAt(_edge.destination);
+                newBot.ArriveAt(_edge.Destination);
             }
         }
 
         public Bot<T> ArriveAt(Node<T> _node)
         {
             Bot<T> newBot = Duplicate();
-            newBot.currentNode = _node;
+            newBot.CurrentNode = _node;
 
-            if (_node.freeBot == null)
+            if (_node.FreeBot == null)
             {
-                _node.freeBot = newBot;
+                _node.FreeBot = newBot;
             }
             else
             {
-                if (newBot.score > _node.freeBot.score)
+                if (newBot.Score > _node.FreeBot.Score)
                 {
-                    _node.freeBot = newBot;
+                    _node.FreeBot = newBot;
                 }
             }
             return newBot;
         }
 
-
-        public void AddInstruction(T _value, int _time, bool _score, int _distance = 1)
+        public Duration<T> CreateDuration(T _value, int _time, int _distance = 1)
         {
-            if (instructionList.Count == 0)
+            Duration<T> newDuration = new Duration<T>(_value, _time, _distance);
+            if (DurationList.Count > 0)
             {
-                Instruction<T> newInstruction = new Instruction<T>(_value, _time, _score, _distance);
-                instructionList.Add(newInstruction);
+                DurationList[DurationList.Count - 1].DistanceToNext = _distance;
             }
-            else if (EqualityComparer<T>.Default.Equals(instructionList[instructionList.Count - 1].value, _value) == false)
+            DurationList.Add(newDuration);
+            return newDuration;
+        }
+
+        public Duration<T> AddDuration(T _value, int _time, int _distance = 1)
+        {
+            if (DurationList.Count == 0)
             {
-                Instruction<T> newInstruction = new Instruction<T>(_value, _time, _score, _distance);
-                instructionList.Add(newInstruction);
+                return CreateDuration(_value, _time, _distance);
             }
-            else if (instructionList[instructionList.Count - 1].score == false && _score == true)
+            else if (EqualityComparer<T>.Default.Equals(DurationList[DurationList.Count - 1].Value, _value) == false)
             {
-                int lastIndex = instructionList.Count - 1;
-                instructionList[lastIndex].score = true;
-                int routeReduction = -1;
+                return CreateDuration(_value, _time, _distance);
+            }
+            else
+            {
+                return DurationList[DurationList.Count - 1];
+            }
+        }
+
+
+        public void ApplyScore(T _value, int _time, int _length = 0 )
+        {
+            if (DurationList.Count > 0
+                && EqualityComparer<T>.Default.Equals(DurationList[DurationList.Count - 1].Value, _value) == true)
+            {
+                int lastIndex = DurationList.Count - 1;
+                int currentTime = _time;
+                DurationList[lastIndex].AppliedScore = true;
+
+                if (DurationList[lastIndex].MustStayUntil < _time + _length)
+                {
+                    DurationList[lastIndex].MustStayUntil = _time + _length;
+                }
                 do
                 {
-                    routeReduction += instructionList[lastIndex].distance;
-                    instructionList[lastIndex].time = _time - routeReduction;
+                    if( DurationList[lastIndex].MustArriveBy > currentTime )
+                    {
+                        DurationList[lastIndex].MustArriveBy = currentTime;
+                    }
+                    if( lastIndex > 0 && DurationList[lastIndex - 1].CanStayUntil > currentTime - DurationList[lastIndex].DistanceToLast )
+                    {
+                        DurationList[lastIndex - 1].CanStayUntil = currentTime - DurationList[lastIndex].DistanceToLast;
+                    }
+
+                    currentTime -= DurationList[lastIndex].DistanceToLast;
                     lastIndex--;
-                } while (lastIndex >= 0 && instructionList[lastIndex].score == false);
+                } while (lastIndex >= 0 && DurationList[lastIndex].AppliedScore == false);
             }
         }
     }
 
     public class Instruction<T>
     {
-        public T value;
-        public int time;
-        public bool score;
-        public int distance = 1;
+        public T Value;
+        public int Time;
 
-        public Instruction(T _value, int _time, bool _score, int _distance)
+        public Instruction(T _value, int _time)
         {
-            value = _value;
-            time = _time;
-            score = _score;
-            distance = _distance;
+            Value = _value;
+            Time = _time;
+        }
+    }
+
+    public class Duration<T>
+    {
+        public T Value;
+
+        public int CanArriveAt;
+        public int MustArriveBy = Int32.MaxValue;
+
+        public int MustStayUntil;
+        public int CanStayUntil = Int32.MaxValue;
+
+        public bool AppliedScore = false;
+
+        public int DistanceToLast;
+        public int DistanceToNext = 1;
+
+        public Duration() { }
+
+        public Duration(T _value, int _time, int _distance = 1)
+        {
+            Value = _value;
+            AppliedScore = false;
+
+            CanArriveAt = _time + _distance - 1;
+            MustStayUntil = _time + _distance - 1;
+
+            DistanceToLast = _distance;
         }
 
-        public Instruction(T _value, int _time, bool _score)
+        public Duration<T> Duplicate()
         {
-            value = _value;
-            time = _time;
-            score = _score;
+            return new Duration<T>()
+            {
+                Value = Value,
+                CanArriveAt = CanArriveAt,
+                MustArriveBy = MustArriveBy,
+                MustStayUntil = MustStayUntil,
+                CanStayUntil = CanStayUntil,
+                AppliedScore = AppliedScore,
+                DistanceToLast = DistanceToLast,
+                DistanceToNext = DistanceToNext
+            };
         }
     }
 }
