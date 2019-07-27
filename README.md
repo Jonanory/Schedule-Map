@@ -16,7 +16,7 @@ Now, let's make the game harder:
 
 ![Game 2](Images/Game2.png)
 
-Now, moving across an edge takes the indicated amount of turns. Another way to sat it is whenever you move across an edge, the indicated number of red tokens is taken from every pile on the board.
+Now, moving across an edge takes the indicated amount of turns. Another way to say it is whenever you move across an edge, the indicated number of red tokens is taken from every pile on the board.
 
 Now, let's make it harder again:
 
