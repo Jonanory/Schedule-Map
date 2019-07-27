@@ -49,7 +49,7 @@ new Map<String>(
         {"F", new Dictionary<string, int>{ { "E", 2 }, { "G", 2 }}},
         {"G", new Dictionary<string, int>{ { "E", 1 }, { "F", 2 }}}
     }
-).GetBot(
+).GetPath(
     new List<ScheduleMap.ScheduleItem<string>> {
         new ScheduleMap.ScheduleItem<string>( "C", 5, 3 ),
         new ScheduleMap.ScheduleItem<string>( "D", 6, 1, 1 ),
@@ -57,8 +57,10 @@ new Map<String>(
         new ScheduleMap.ScheduleItem<string>( "E", 2, 6, 2 ),
         new ScheduleMap.ScheduleItem<string>( "F", 7, 8 ),
         new ScheduleMap.ScheduleItem<string>( "G", 3, 3 )
-    }, "A", 0, 8
-).Path;
+    },
+    "A",
+    8
+);
 ```
 
 To instantiate a Schedule Map with each node represented by a class T (in the above case, a string), two things are needed:
@@ -67,19 +69,27 @@ To instantiate a Schedule Map with each node represented by a class T (in the ab
     - A List of T instances the T instance is attached to.
     - A Dictionary with the attached T instance as the key and the number of turns it takes to get from one to the other as the value
 
-To get a list of directions (in the form of a Queue of T instances), you first want to use the GetBot function, with the following inputs:
+It is also possible to add a discounting rate through the `SetDiscount` function on the Map. Discounting will mean that green tokens that can be attained at later turns will have their value reduced, and the later it is the lower its value becomes. This is useful if there is a chance that piles of tokens might disappear due to some unforseen extraneous reasons. For example, it's not worth considering a pile of 5 green tokens that can be attained at turn 10 that much if there is a good chance the pile will be disappear by the time turn 10 comes around. The bots will thusly treat future gains lower then immediate gains. The default value is 1, where no piles will have their values lowered.
+
+These are the 4 functions that can be called to get an optimal path:
+- GetPath: Returns a Queue of the T nodes that the bot passed on it's way to get the green token, with repititions of a node if the bot stayed there for a number of turns. Any turns that was spent on the path between nodes is not included in the Queue.
+- GetInstructions: Returns a Queue of instructions to replicate the bot's path, including an instruction at the start to indicate the starting point. Each instruction includes the following attributes:
+    - `Value`: Which T node to go to
+    - `Time`: Which turn to to arrive at the node at
+- GetDurations: Returns a Queue of durations which indicate at what turns the bot can be at a node. Each duration is includes the following attributes:
+    - `Value`: Which T node to go to
+    - `CanArriveAt`: The earliest turn that the bot can arrive at the node at. This is after retrieving all tokens from previous nodes.
+    - `MustArriveBy`: The latest turn that the bot can arrive at the node at in order to get the green tokens they are scheduled to get
+    - `MustStayUntil`: The earliest turn that the bot can stay at the node for. That is, the point where the bot has gotten all the green tokens it can get at this node. Will be equal to `CanArriveBy` if no tokens are attained at this node.
+    - `CanStayUntil`: The latest turn that the bot can stay at the node for before it starts losing out on tokens. Will be equal to `MustArriveBy` if no tokens are attained at this node.
+- GetBot: Returns a Bot instance which have `Path`, `Instructions` and `Durations` attributes, as well as a `Score` attribute that tells how many tokens the bot got in the optimal path
+
+All of these fuctions take the same inputs:
 - A List of ScheduleItems(the token piles), which are instantiated with
     - The T instance that holds the token pile
     - The number of green tokens
     - The number of red tokens
     - The number of yellow tokens, if neccessary
 - The T instance that will be the starting node
-- How many red tokens should be taken off at the beginning
 - How many turns should be planned out
-
-This will return a bot that got the most green tokens in the game. From this bot, you can get either:
-- Path: A Queue of the T nodes that the bot passed on it's way to get the green token, with repititions of a node if the bot stayed there for a number of turns. Any turns that was spent on the path between nodes is not included in the Queue.
-- Instructions: A Queue of instructions to replicate the bot's path, including an instruction at the start to indicate the starting point. Each instruction includes the following attributes:
-    - value: Which T node to go to
-    - time: Which turn to start heading on the path to go to the node
-    - score: How many green nodes the bot has at that point in time
+- (Optional) How many red tokens should be taken off at the beginning (default 0)
