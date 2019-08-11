@@ -36,9 +36,11 @@ Then, if the node has any piles that have just arrived at the yellow token stage
 
 ## How to use
 
-Consider the following code as a quick example of use (will return a Queue of strings)
+### Creating a Map
+
+Consider the following code as a quick example of creating a map
 ```
-new Map<String>(
+Map<String> scheduleMap = new Map<String>(
     new List<string> { "A", "B", "C", "D", "E", "F", "G" },
     new Dictionary<string, Dictionary<string, int>> {
         {"A", new Dictionary<string, int>{ { "B", 3 }, { "D", 1 }, { "E", 1 }}},
@@ -49,7 +51,19 @@ new Map<String>(
         {"F", new Dictionary<string, int>{ { "E", 2 }, { "G", 2 }}},
         {"G", new Dictionary<string, int>{ { "E", 1 }, { "F", 2 }}}
     }
-).GetPath(
+)
+```
+To instantiate a Schedule Map with each node represented by a class T (in the above case, a string), two things are needed:
+- A List of all the T instances that should be represented as a node
+- A Dictionary with T instances as keys, and for values, either
+    - A List of T instances that the T instance is attached to.
+    - A Dictionary with the attached T instances as the key and the number of turns it takes to get from one to the other as the value
+
+### Generating a Path
+
+Following on from the previous example, this is how you would get a simple path result (in this case, the function will return a queue of strings):
+```
+scheduleMap.GetPath(
     new List<ScheduleMap.ScheduleItem<string>> {
         new ScheduleMap.ScheduleItem<string>( "C", 5, 3 ),
         new ScheduleMap.ScheduleItem<string>( "D", 6, 1, 1 ),
@@ -62,25 +76,16 @@ new Map<String>(
     8
 );
 ```
-
-To instantiate a Schedule Map with each node represented by a class T (in the above case, a string), two things are needed:
-- A List of all the T instances that should be represented as a node
-- A Dictionary with T instances as keys, and for values, either
-    - A List of T instances the T instance is attached to.
-    - A Dictionary with the attached T instance as the key and the number of turns it takes to get from one to the other as the value
-
-It is also possible to add a discounting rate through the `SetDiscount` function on the Map. Discounting will mean that green tokens that can be attained at later turns will have their value reduced, and the later it is the lower its value becomes. This is useful if there is a chance that piles of tokens might disappear due to some unforseen extraneous reasons. For example, it's not worth considering a pile of 5 green tokens that can be attained at turn 10 that much if there is a good chance the pile will be disappear by the time turn 10 comes around. The bots will thusly treat future gains lower then immediate gains. The default value is 1, where no piles will have their values lowered.
-
 These are the 4 functions that can be called to get an optimal path:
 - GetPath: Returns a Queue of the T nodes that the bot passed on it's way to get the green token, with repititions of a node if the bot stayed there for a number of turns. Any turns that was spent on the path between nodes is not included in the Queue.
 - GetInstructions: Returns a Queue of instructions to replicate the bot's path, including an instruction at the start to indicate the starting point. Each instruction includes the following attributes:
     - `Value`: Which T node to go to
     - `Time`: Which turn to to arrive at the node at
-- GetDurations: Returns a Queue of durations which indicate at what turns the bot can be at a node. Each duration is includes the following attributes:
+- GetDurations: Returns a Queue of durations which indicate at what turns the bot can be present at a node. Each duration is includes the following attributes:
     - `Value`: Which T node to go to
-    - `CanArriveAt`: The earliest turn that the bot can arrive at the node at. This is after retrieving all tokens from previous nodes.
+    - `CanArriveAt`: The earliest turn that the bot can arrive at the node at. This is after retrieving all tokens from previous nodes
     - `MustArriveBy`: The latest turn that the bot can arrive at the node at in order to get the green tokens they are scheduled to get
-    - `MustStayUntil`: The earliest turn that the bot can stay at the node for. That is, the point where the bot has gotten all the green tokens it can get at this node. Will be equal to `CanArriveBy` if no tokens are attained at this node.
+    - `MustStayUntil`: The earliest turn that the bot can stay at the node for. That is, the point where the bot has gotten all the green tokens it can get at this node Will be equal to `CanArriveBy` if no tokens are attained at this node
     - `CanStayUntil`: The latest turn that the bot can stay at the node for before it starts losing out on tokens. Will be equal to `MustArriveBy` if no tokens are attained at this node.
 - GetScheduleItems: Returns a Queue of ScheduleItems(token piles) that the bot collected in its maximal journey. Each ScheduleItem includes:
     - `Value`: Which T node the ScheduleItem occurred at
@@ -98,3 +103,7 @@ All of these fuctions take the same inputs:
 - The T instance that will be the starting node
 - How many turns should be planned out
 - (Optional) How many red tokens should be taken off at the beginning (default 0)
+
+## Discounting
+
+It is also possible to add a discounting rate through the `SetDiscount` function on the Map. Discounting will mean that green tokens that can be attained at later turns will have their value reduced, and the later it is the lower its value becomes. This is useful if there is a chance that piles of tokens might disappear due to some unforseen extraneous reasons. For example, it's not worth considering a pile of 5 green tokens that can be attained at turn 10 that much if there is a good chance the pile will be disappear by the time turn 10 comes around. The bots will thusly treat future gains lower then immediate gains. The default value is 1, where no piles will have their values lowered. This value should be reduced to achieve the desired discount properties.
