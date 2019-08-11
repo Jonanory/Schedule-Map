@@ -82,7 +82,12 @@ These are the 4 functions that can be called to get an optimal path:
     - `MustArriveBy`: The latest turn that the bot can arrive at the node at in order to get the green tokens they are scheduled to get
     - `MustStayUntil`: The earliest turn that the bot can stay at the node for. That is, the point where the bot has gotten all the green tokens it can get at this node. Will be equal to `CanArriveBy` if no tokens are attained at this node.
     - `CanStayUntil`: The latest turn that the bot can stay at the node for before it starts losing out on tokens. Will be equal to `MustArriveBy` if no tokens are attained at this node.
-- GetBot: Returns a Bot instance which have `Path`, `Instructions` and `Durations` attributes, as well as a `Score` attribute that tells how many tokens the bot got in the optimal path
+- GetScheduleItems: Returns a Queue of ScheduleItems(token piles) that the bot collected in its maximal journey. Each ScheduleItem includes:
+    - `Value`: Which T node the ScheduleItem occurred at
+    - `StartTime`: The turn that the ScheduleItem occurred at i.e. the number of red tokens
+    - `Length`: The number of turns that the bot stayed at the ScheduleItem for to get the points i.e. the number of orange tokens
+    - `Points`: The number of points (i.e. green tokens) gained for arriving at the ScheduleItem
+- GetBot: Returns a Bot instance which have `Path`, `Instructions`, `Durations` and `ScheduleItems` attributes, as well as a `Score` attribute that tells how many tokens the bot got in the optimal path
 
 All of these fuctions take the same inputs:
 - A List of ScheduleItems(the token piles), which are instantiated with

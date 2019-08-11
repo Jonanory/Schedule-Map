@@ -98,19 +98,25 @@ namespace ScheduleMap
         {
             bool discounting = _discount == 1f;
             float maxFreeScore = 0;
+            ScheduleItem<T> maxFreeScheduleItem = null;
             foreach (ScheduleItem<T> item in _items)
             {
                 if (EqualityComparer<T>.Default.Equals(item.Value, Value) == false) continue;
                 if (item.Length > 0)
                 {
                     Bot<T> newBot = TrapCopyOfBot(FreeBot, item.Length, item.Points);
-                    if (newBot != null) newBot.ApplyScore(Value, _time, item.Length);
+                    if (newBot != null)
+                    {
+                        newBot.ApplyScoreToDuration(Value, _time, item.Length);
+                        newBot.AddScheduleItem(item);
+                    }
                 }
                 else
                 {
                     if (item.Points > maxFreeScore)
                     {
                         maxFreeScore = item.Points;
+                        maxFreeScheduleItem = item;
                     }
                 }
             }
@@ -126,7 +132,8 @@ namespace ScheduleMap
 
             if (maxFreeScore > 0)
             {
-                FreeBot.ApplyScore(Value, _time, 0);
+                FreeBot.ApplyScoreToDuration(Value, _time, 0);
+                FreeBot.AddScheduleItem(maxFreeScheduleItem);
             }
         }
     }

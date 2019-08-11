@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace ScheduleMap
@@ -14,7 +15,9 @@ namespace ScheduleMap
         public Queue<T> Path { get; private set; }
         public Queue<Instruction<T>> Instructions { get; private set; }
         public Queue<Duration<T>> Durations { get; private set; }
+        public Queue<ScheduleItem<T>> ScheduleItems { get; private set; }
         List<Duration<T>> DurationList;
+        List<ScheduleItem<T>> ScheduleItemList;
 
 
         public Bot() { }
@@ -23,8 +26,10 @@ namespace ScheduleMap
             Path = new Queue<T>();
             Instructions = new Queue<Instruction<T>>();
             Durations = new Queue<Duration<T>>();
+            ScheduleItems = new Queue<ScheduleItem<T>>();
             
             DurationList = new List<Duration<T>>();
+            ScheduleItemList = new List<ScheduleItem<T>>();
         }
 
         List<Duration<T>> DuplicationDurationList()
@@ -38,12 +43,24 @@ namespace ScheduleMap
             return final;
         }
 
+        List<ScheduleItem<T>> DuplicateScheduleItemsList()
+        {
+            List<ScheduleItem<T>> final = new List<ScheduleItem<T>>();
+
+            foreach (ScheduleItem<T> scheduleItem in ScheduleItemList)
+            {
+                final.Add(scheduleItem.Duplicate());
+            }
+            return final;
+        }
+
         public Bot<T> Duplicate()
         {
             return new Bot<T>
             {
                 Score = Score,
                 DurationList = DuplicationDurationList(),
+                ScheduleItemList = DuplicateScheduleItemsList(),
                 CurrentNode = CurrentNode
             };
         }
@@ -77,16 +94,25 @@ namespace ScheduleMap
 
         public void MakeInstructions()
         {
-            Queue<Instruction<T>> result = new Queue<Instruction<T>>();
-
+            Instructions = new Queue<Instruction<T>>();
             foreach (Duration<T> duration in DurationList)
             {
-                result.Enqueue(
+                Instructions.Enqueue(
                     new Instruction<T>(
                         duration.Value,
                         duration.MustArriveBy
                     )
                 );
+            }
+        }
+
+        public void MakeScheduleItems()
+        {
+            ScheduleItems = new Queue<ScheduleItem<T>>();
+            ScheduleItemList = ScheduleItemList.OrderBy(o => o.StartTime).ToList();
+            foreach (ScheduleItem<T> scheduleItem in ScheduleItemList)
+            {
+                ScheduleItems.Enqueue(scheduleItem);
             }
         }
 
@@ -156,8 +182,13 @@ namespace ScheduleMap
             }
         }
 
+        public void AddScheduleItem(ScheduleItem<T> _scheduleItem)
+        {
+            ScheduleItemList.Add(_scheduleItem);
+        }
 
-        public void ApplyScore(T _value, int _time, int _length = 0 )
+
+        public void ApplyScoreToDuration(T _value, int _time, int _length = 0 )
         {
             if (DurationList.Count > 0
                 && EqualityComparer<T>.Default.Equals(DurationList[DurationList.Count - 1].Value, _value) == true)

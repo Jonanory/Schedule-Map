@@ -15,20 +15,20 @@ namespace ScheduleMap
         float DiscountRate = 1f;
 
         public ScheduleList() { }
-        public ScheduleList(Dictionary<int, List<ScheduleItem<T>>> _schedule, float _DiscountRate = 1f)
+        public ScheduleList(Dictionary<int, List<ScheduleItem<T>>> _schedule, float _discountRate = 1f)
         {
             Schedule = _schedule;
-            SetDiscountRate(_DiscountRate);
+            SetDiscountRate(_discountRate);
             CalculateMaxPoints();
         }
-        public ScheduleList(List<ScheduleItem<T>> _schedule, float _DiscountRate = 1f)
+        public ScheduleList(List<ScheduleItem<T>> _schedule, float _discountRate = 1f)
         {
             Schedule = new Dictionary<int, List<ScheduleItem<T>>>();
             foreach (ScheduleItem<T> item in _schedule)
             {
                 Add(item);
             }
-            SetDiscountRate(_DiscountRate);
+            SetDiscountRate(_discountRate);
         }
 
         void SetDiscountRate(float _discountRate = 1f)
@@ -76,7 +76,7 @@ namespace ScheduleMap
             }
         }
 
-        public void ClampTime(int startTime, int endTime, float _DiscountRate = 1)
+        public void ClampTime(int startTime, int endTime)
         {
             Dictionary<int, List<ScheduleItem<T>>> newSchedule = new Dictionary<int, List<ScheduleItem<T>>>();
 
@@ -171,6 +171,11 @@ namespace ScheduleMap
         public ScheduleItem(T _value, float _score, int _startTime, int _length = 0) : base(_score, _startTime, _length)
         {
             Value = _value;
+        }
+
+        public ScheduleItem<T> Duplicate()
+        {
+            return new ScheduleItem<T>(Value, Points, StartTime, Length);
         }
     }
 

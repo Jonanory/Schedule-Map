@@ -11,6 +11,9 @@ namespace ScheduleMap
 
         Bot<T> MaxBot = null;
 
+        public float TotalPointsAvailable;
+        Dictionary<int, float> MaxPossiblePointsRemaining;
+
         bool Discounting = false;
         float DiscountRate = 1f;
 
@@ -137,7 +140,7 @@ namespace ScheduleMap
             }
         }
 
-        public Bot<T> GetBot(ScheduleList<T> _list, T _startLocation, int _pathLength, int _startTime = 0)
+        public Bot<T> GetBot(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
             Reset();
 
@@ -199,25 +202,26 @@ namespace ScheduleMap
 
             MaxBot.MakeDurations();
             MaxBot.MakeInstructions();
+            MaxBot.MakeScheduleItems();
             MaxBot.MakePath();
             return MaxBot;
         }
 
-        public Queue<Duration<T>> GetDurations(ScheduleList<T> _list, T _startLocation, int _pathLength, int _startTime = 0)
+        public Queue<Duration<T>> GetDurations(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
-            Bot<T> bot = GetBot(_list, _startLocation, _pathLength, _startTime);
+            Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
             return bot.Durations;
         }
         
-        public Queue<Instruction<T>> GetInstructions(ScheduleList<T> _list, T _startLocation, int _pathLength, int _startTime = 0)
+        public Queue<Instruction<T>> GetInstructions(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
-            Bot<T> bot = GetBot(_list, _startLocation, _pathLength, _startTime);
+            Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
             return bot.Instructions;
         }
 
-        public Queue<T> GetPath(ScheduleList<T> _list, T _startLocation, int _pathLength, int _startTime = 0 )
+        public Queue<T> GetPath(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
         {
-            Bot<T> bot = GetBot(_list, _startLocation, _pathLength, _startTime);
+            Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
             return bot.Path;
         }
     }
