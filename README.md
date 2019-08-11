@@ -90,7 +90,7 @@ These are the 4 functions that can be called to get an optimal path:
 - GetScheduleItems: Returns a Queue of ScheduleItems(token piles) that the bot collected in its maximal journey. Each ScheduleItem includes:
     - `Value`: Which T node the ScheduleItem occurred at
     - `StartTime`: The turn that the ScheduleItem occurred at i.e. the number of red tokens
-    - `Length`: The number of turns that the bot stayed at the ScheduleItem for to get the points i.e. the number of orange tokens
+    - `Length`: The number of turns that the bot stayed at the ScheduleItem for to get the points i.e. the number of yellow tokens
     - `Points`: The number of points (i.e. green tokens) gained for arriving at the ScheduleItem
 - GetBot: Returns a Bot instance which have `Path`, `Instructions`, `Durations` and `ScheduleItems` attributes, as well as a `Score` attribute that tells how many tokens the bot got in the optimal path
 
