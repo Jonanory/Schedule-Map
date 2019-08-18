@@ -224,5 +224,11 @@ namespace ScheduleMap
             Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
             return bot.Path;
         }
+        
+        public Queue<ScheduleItem<T>> GetScheduleItems(ScheduleList<T> _list, T _startLocation, int _startTime = 0, int _pathLength = 8)
+        {
+            Bot<T> bot = GetBot(_list, _startLocation, _startTime, _pathLength);
+            return bot.ScheduleItems;
+        }
     }
 }
